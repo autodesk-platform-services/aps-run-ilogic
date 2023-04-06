@@ -29,13 +29,13 @@ $(document).ready(function () {
 
 
 function prepareLists() {
-    list('activity', '/api/aps/designautomation/activities');
+    list('activity', '/api/aps/designautomation/activities', () => writeLog('No activity'));
     list('engines', '/api/aps/designautomation/engines');
-    list('inputFile', '/api/aps/datamanagement/objects')
-    list('outputFile', '/api/aps/datamanagement/objects')
+    list('inputFile', '/api/aps/datamanagement/objects', () => writeLog('Bucket is empty'));
+    list('outputFile', '/api/aps/datamanagement/objects');
 }
 
-function list(control, endpoint) {
+function list(control, endpoint, cb) {
     $('#' + control).find('option').remove().end();
     jQuery.ajax({
         url: endpoint,
@@ -45,7 +45,8 @@ function list(control, endpoint) {
                     disabled: true,
                     text: 'Nothing found'
                 }));
-                writeLog('Bucket is empty');
+                if (cb)
+                  cb();
             }
             else
                 list.forEach(function (item) {
