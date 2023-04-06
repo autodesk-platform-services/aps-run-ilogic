@@ -40,11 +40,13 @@ function list(control, endpoint) {
     jQuery.ajax({
         url: endpoint,
         success: function (list) {
-            if (list.length === 0)
+            if (list.length === 0) {
                 $('#' + control).append($('<option>', {
                     disabled: true,
                     text: 'Nothing found'
                 }));
+                writeLog('Bucket is empty');
+            }
             else
                 list.forEach(function (item) {
                     $('#' + control).append($('<option>', {
@@ -52,7 +54,10 @@ function list(control, endpoint) {
                         text: item
                     }));
                 });
-        }
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+          writeLog(xhr.responseJSON.message);
+      }
     });
 }
 

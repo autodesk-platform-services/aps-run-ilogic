@@ -189,10 +189,11 @@ router.get('/aps/datamanagement/objects', async (req, res) => {
   let that = this;
   let allObjects = [];
   let paginationToken = null;
+  let bucketName = Utils.getBucketName(req);
   try {
       const api = new APS.ObjectsApi();
       while (true) {
-        let objects = await api.getObjects(Utils.getBucketName(req), { 'startAt': paginationToken }, req.oauth_client, req.oauth_token);
+        let objects = await api.getObjects(bucketName, { 'startAt': paginationToken }, req.oauth_client, req.oauth_token);
         allObjects = allObjects.concat(objects.body.items.map(item => item.objectKey));
         if (objects.body.next == null) break;
         const urlParams = new URLSearchParams(objects.body.next);
@@ -201,7 +202,10 @@ router.get('/aps/datamanagement/objects', async (req, res) => {
       res.json(allObjects.sort()); // return list of engines
   } catch (ex) {
       console.error(ex);
-      res.json([]);
+      if (ex.response.status === 404)
+        res.status(404).json({ message: `Bucket '${bucketName}' not found. Please create it` });
+      else  
+        res.json(500).json({ message: ex.message });
   }
 
 });
