@@ -9,7 +9,7 @@ $(document).ready(function () {
             client_secret: $('#clientSecret').val()
         }),
         success: function (res) {
-            writeLog('Client Id & Client Secret are valid');
+            writeLog('Client Id & Client Secret are valid!');
             prepareLists();
 
             $('#clearAccount').click(clearAccount);
@@ -20,7 +20,7 @@ $(document).ready(function () {
             startConnection();
         },
         error: function (xhr, ajaxOptions, thrownError) {
-            writeLog('Something wrong with Client Id or Client Secret');
+            writeLog('Something wrong with Client Id or Client Secret!');
         }
       });
     });
@@ -29,37 +29,36 @@ $(document).ready(function () {
 
 
 function prepareLists() {
-    list('activity', '/api/aps/designautomation/activities', () => writeLog('No activity'));
-    list('engines', '/api/aps/designautomation/engines');
-    list('inputFile', '/api/aps/datamanagement/objects', () => writeLog('Bucket is empty'));
-    list('outputFile', '/api/aps/datamanagement/objects');
+    list(['activity'], '/api/aps/designautomation/activities');
+    list(['engines'], '/api/aps/designautomation/engines');
+    list(['inputFile', 'outputFile'], '/api/aps/datamanagement/objects');
 }
 
-function list(control, endpoint, cb) {
-    $('#' + control).find('option').remove().end();
-    jQuery.ajax({
-        url: endpoint,
-        success: function (list) {
-            if (list.length === 0) {
-                $('#' + control).append($('<option>', {
-                    disabled: true,
-                    text: 'Nothing found'
-                }));
-                if (cb)
-                  cb();
-            }
-            else
-                list.forEach(function (item) {
-                    $('#' + control).append($('<option>', {
-                        value: item,
-                        text: item
-                    }));
-                });
-        },
-        error: function (xhr, ajaxOptions, thrownError) {
-          writeLog(xhr.responseJSON.message);
-      }
-    });
+function list(controls, endpoint) {
+      jQuery.ajax({
+          url: endpoint,
+          success: function (list) {
+            controls.forEach(function (control) {
+              $('#' + control).find('option').remove().end();
+              if (list.length === 0) {
+                  $('#' + control).append($('<option>', {
+                      disabled: true,
+                      text: 'Nothing found'
+                  }));
+              }
+              else
+                  list.forEach(function (item) {
+                      $('#' + control).append($('<option>', {
+                          value: item,
+                          text: item
+                      }));
+                  });
+            });
+          },
+          error: function (xhr, ajaxOptions, thrownError) {
+            writeLog(xhr.responseJSON.message);
+        }
+      });
 }
 
 function clearAccount() {

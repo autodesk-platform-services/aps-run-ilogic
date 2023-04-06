@@ -203,7 +203,7 @@ router.get('/aps/datamanagement/objects', async (req, res) => {
   } catch (ex) {
       console.error(ex);
       if (ex.response.status === 404)
-        res.status(404).json({ message: `Bucket '${bucketName}' not found. Please create it` });
+        res.status(404).json({ message: `Bucket '${bucketName}' not found. Please create it!` });
       else  
         res.json(500).json({ message: ex.message });
   }
