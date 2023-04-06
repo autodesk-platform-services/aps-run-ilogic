@@ -29,11 +29,13 @@ $(document).ready(function () {
 });
 
 function fillList(controls, endpoint) {
+      controls.forEach(function (control) {
+        $('#' + control).find('option').remove().end();
+      });
       jQuery.ajax({
           url: endpoint,
           success: function (list) {
             controls.forEach(function (control) {
-              $('#' + control).find('option').remove().end();
               if (list.length === 0) {
                   $('#' + control).append($('<option>', {
                       disabled: true,
