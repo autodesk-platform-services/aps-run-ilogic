@@ -37,7 +37,7 @@ function fillList(controls, endpoint) {
             .find("option")
             .remove()
             .end();
-        if (endpoint === "")
+        if (endpoint === undefined)
             $("#" + control).append(
                 $("<option>", {
                     disabled: true,
@@ -46,7 +46,7 @@ function fillList(controls, endpoint) {
             );
     });
 
-    if (endpoint === "") return;
+    if (endpoint === undefined) return;
 
     jQuery.ajax({
         url: endpoint,
@@ -90,7 +90,7 @@ function clearAccount() {
         url: "api/aps/designautomation/account",
         method: "DELETE",
         success: function () {
-            fillList(["activity"], "/api/aps/designautomation/activities");
+            fillList(["activity"]);
             writeLog("Account cleared, all app bundles & activities deleted");
         },
     });
