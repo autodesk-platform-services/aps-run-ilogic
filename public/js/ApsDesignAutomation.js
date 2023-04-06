@@ -10,7 +10,9 @@ $(document).ready(function () {
         }),
         success: function (res) {
             writeLog('Client Id & Client Secret are valid!');
-            prepareLists();
+            fillList(['activity'], '/api/aps/designautomation/activities');
+            fillList(['engines'], '/api/aps/designautomation/engines');
+            fillList(['inputFile', 'outputFile'], '/api/aps/datamanagement/objects');
 
             $('#clearAccount').click(clearAccount);
             $('#defineActivityShow').click(defineActivityModal);
@@ -26,15 +28,7 @@ $(document).ready(function () {
     });
 });
 
-
-
-function prepareLists() {
-    list(['activity'], '/api/aps/designautomation/activities');
-    list(['engines'], '/api/aps/designautomation/engines');
-    list(['inputFile', 'outputFile'], '/api/aps/datamanagement/objects');
-}
-
-function list(controls, endpoint) {
+function fillList(controls, endpoint) {
       jQuery.ajax({
           url: endpoint,
           success: function (list) {
@@ -71,7 +65,7 @@ function clearAccount() {
         url: 'api/aps/designautomation/account',
         method: 'DELETE',
         success: function () {
-            prepareLists();
+            fillList(['activity'], '/api/aps/designautomation/activities');
             writeLog('Account cleared, all app bundles & activities deleted');
         }
     });
@@ -86,7 +80,7 @@ function startCreatingActivity() {
         writeLog("Defining activity for " + $('#engines').val());
         $("#defineActivityModal").modal('toggle');
           createActivity(function () {
-              prepareLists();
+            fillList(['activity'], '/api/aps/designautomation/activities');
           });
     });
 }
