@@ -340,18 +340,23 @@ router.post('/aps/designautomation/activities', async /*CreateActivity*/(req, re
 router.get('/aps/designautomation/activities', async /*GetDefinedActivities*/(req, res) => {
     const api = await Utils.dav3API(req.oauth_token);
     // filter list of 
-    let activities = null;
-    try {
-        activities = await api.getActivities();
-    } catch (ex) {
-        console.error(ex);
-        return (res.status(500).json({
-            diagnostic: 'Failed to get activity list'
-        }));
-    }
+    let allActivities = [];
+    let page = null;
+    do {
+      try {
+          let activities = await api.getActivities(page ? { page } : {});
+          allActivities = allActivities.concat(activities.data);
+          page = activities.paginationToken;
+      } catch (ex) {
+          console.error(ex);
+          return (res.status(500).json({
+              diagnostic: 'Failed to get activity list'
+          }));
+      }
+    } while (page);
     let definedActivities = [];
-    for (let i = 0; i < activities.data.length; i++) {
-        let activity = activities.data[i];
+    for (let i = 0; i < allActivities.length; i++) {
+        let activity = allActivities[i];
         if (activity.startsWith(Utils.getNickName(req)) && activity.indexOf('$LATEST') === -1)
             definedActivities.push(activity.replace(Utils.getNickName(req) + '.', ''));
     }
@@ -442,6 +447,7 @@ router.post('/aps/designautomation/workitems', multer({
     if (inputFile.endsWith(".zip")) {
         inputFileArgument.zip = true;
         inputFileArgument.pathInZip = inputFile.replace(".zip", "");
+        inputFileArgument.localName = "inputFiles";
     }
     // 2. input json
     const inputCodeArgument = {
