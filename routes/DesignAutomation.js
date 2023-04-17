@@ -439,6 +439,10 @@ router.post('/aps/designautomation/workitems', multer({
         url: inputFileOss,
         headers: { "Authorization": bearerToken }
     };
+    if (inputFile.endsWith(".zip")) {
+        inputFileArgument.zip = true;
+        inputFileArgument.pathInZip = inputFile.replace(".zip", "");
+    }
     // 2. input json
     const inputCodeArgument = {
       url: await getObjectId(bucketKey, inputCode, req),
