@@ -196,9 +196,9 @@ router.get('/aps/datamanagement/objects', async (req, res) => {
         let objects = await api.getObjects(bucketName, { 'startAt': paginationToken }, req.oauth_client, req.oauth_token);
         allObjects = allObjects.concat(objects.body.items.map(item => item.objectKey));
         if (objects.body.next == null) break;
-        const urlParams = new URLSearchParams(objects.body.next);
-        paginationToken = urlParams.get('startAt');
-      }
+        const url = new URL(objects.body.next);
+        paginationToken = url.searchParams.get('startAt');
+      } 
       res.json(allObjects.sort()); // return list of engines
   } catch (ex) {
       console.error(ex);
