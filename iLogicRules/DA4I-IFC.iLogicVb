@@ -1,0 +1,12 @@
+﻿Dim doc As PartDocument = ThisDoc.Document 
+
+Dim bimComponent As BIMComponent = doc.ComponentDefinition.BIMComponent
+
+Dim startDir = System.IO.Directory.GetCurrentDirectory()
+Dim fileName = System.IO.Path.Combine(startDir, "outputFiles", "Output.ifc")
+Dim reportFileName = System.IO.Path.Combine(startDir, "outputFiles", "Report.html")
+
+Dim nvm As NameValueMap = ThisServer.TransientObjects.CreateNameValueMap()
+nvm.Add("ReportFileName", reportFileName)
+
+bimComponent.ExportBuildingComponentWithOptions(fileName, nvm)

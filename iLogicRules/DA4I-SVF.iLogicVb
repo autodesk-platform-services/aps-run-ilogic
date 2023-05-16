@@ -1,0 +1,39 @@
+﻿Dim oAddin As TranslatorAddIn
+oAddin = ThisServer.ApplicationAddIns.ItemById("{C200B99B-B7DD-4114-A5E9-6557AB5ED8EC}")
+
+Dim oContext As TranslationContext
+oContext = ThisServer.TransientObjects.CreateTranslationContext()
+oContext.Type = kFileBrowseIOMechanism
+
+Dim oOptions As NameValueMap
+oOptions = ThisServer.TransientObjects.CreateNameValueMap()
+Dim oData As DataMedium
+oData = ThisServer.TransientObjects.CreateDataMedium()
+
+Dim doc As Document
+doc = ThisDoc.Document 
+
+Dim outputFolderPath As String
+Try
+	' When running on the desktop
+	ad = ThisApplication.ActiveDocument 
+	outputFolderPath = "Y:\Documents\GitHub\adamenagy\customized-viewer\svf_iLogic"
+Catch
+	' When running on Design Automation
+	outputFolderPath = System.IO.Directory.GetCurrentDirectory() + "\outputFiles"
+End Try
+
+Logger.Trace("Saving SVF to folder " + outputFolderPath)
+
+oData.FileName = outputFolderPath + "\result.collaboration"
+
+' Setup SVF options
+If (oAddin.HasSaveCopyAsOptions(doc, oContext, oOptions)) Then
+	oOptions.Value("GeometryType") = 1
+	oOptions.Value("EnableExpressTranslation") = False
+	oOptions.Value("SVFFileOutputDir") = outputFolderPath
+	oOptions.Value("ExportFileProperties") = True
+	oOptions.Value("ObfuscateLabels") = False
+End If
+
+oAddin.SaveCopyAs(doc, oContext, oOptions, oData)
