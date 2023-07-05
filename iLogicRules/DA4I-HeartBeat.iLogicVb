@@ -1,0 +1,16 @@
+﻿Imports System.Threading
+
+t = New Thread(
+	Sub() 
+		Do While True 
+			Logger.Info("Heartbeat")
+			Thread.Sleep(10000)
+		Loop
+	End Sub
+)
+
+t.Start()
+
+Logger.Info("Do long, time consuming operations here")
+
+t.Abort()
