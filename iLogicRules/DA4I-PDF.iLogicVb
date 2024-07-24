@@ -37,6 +37,7 @@ Dim oDwg As DrawingDocument
 oDwg = ThisDoc.Document
 
 If oTransAddIn.HasSaveCopyAsOptions(oDwg, oContext, oOptions) Then
+  oOptions.Value("Sheet_Range") = kPrintAllSheets
 End If
 
 oTransAddIn.SaveCopyAs(oDwg, oContext, oOptions, oData)
