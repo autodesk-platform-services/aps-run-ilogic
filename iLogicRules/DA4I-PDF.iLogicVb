@@ -1,0 +1,42 @@
+﻿Dim outputFolderPath As String
+Try
+	' When running on the desktop
+	ad = ThisApplication.ActiveDocument 
+	outputFolderPath = "C:\Temp\ModelStateBOM"
+Catch
+	' When running on Design Automation
+	outputFolderPath = System.IO.Directory.GetCurrentDirectory() + "\outputFiles"
+End Try
+
+Logger.Trace("Saving PDF to folder " + outputFolderPath)
+
+Dim strCLSID As String = "{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}"
+
+Dim oAddIns As ApplicationAddIns
+oAddIns = ThisServer.ApplicationAddIns 
+Dim oTransAddIn As TranslatorAddIn
+oTransAddIn = oAddIns.ItemById(strCLSID)
+oTransAddIn.Activate
+
+Dim oTransientObjects As TransientObjects
+oTransientObjects = ThisServer.TransientObjects
+Dim oData As DataMedium
+oData = oTransientObjects.CreateDataMedium
+oData.FileName = outputFolderPath + "\output.pdf"
+
+Logger.Trace("Saving PDF as " + oData.FileName)
+
+Dim oContext As TranslationContext
+oContext = oTransientObjects.CreateTranslationContext
+oContext.Type = kFileBrowseIOMechanism
+
+Dim oOptions As NameValueMap
+oOptions = oTransientObjects.CreateNameValueMap
+
+Dim oDwg As DrawingDocument
+oDwg = ThisDoc.Document
+
+If oTransAddIn.HasSaveCopyAsOptions(oDwg, oContext, oOptions) Then
+End If
+
+oTransAddIn.SaveCopyAs(oDwg, oContext, oOptions, oData)
