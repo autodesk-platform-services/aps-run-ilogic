@@ -1,0 +1,234 @@
+﻿Imports System
+Imports System.Linq
+Imports System.Collections.Generic
+Imports System.Drawing
+Imports System.Drawing.Imaging
+Imports System.IO
+Imports System.Security.Cryptography
+Imports System.Text
+Imports Inventor
+Imports Autodesk.iLogic.Core.UiBuilderStorage
+Imports Autodesk.iLogic.UiBuilderCore.Data
+Imports Autodesk.iLogic.UiBuilderCore.Storage
+Imports Newtonsoft.Json.Linq
+
+
+AddReference "Autodesk.iLogic.Common.dll"
+AddReference "Autodesk.iLogic.Core.dll"
+AddReference "Autodesk.iLogic.Runtime.dll"
+AddReference "Autodesk.iLogic.Types.dll"
+AddReference "Autodesk.iLogic.UiBuilder.dll"
+AddReference "Autodesk.iLogic.UiBuilderCore.dll"
+AddReference "Newtonsoft.Json"
+AddReference "System.Drawing"
+AddReference "System.Drawing.Common"
+AddReference "System.Security.Cryptography"
+
+Public Class iLogicFormsReader
+	ReadOnly storage As UiStorage
+	ReadOnly document As Object
+	ReadOnly folderPath As String
+
+	Public Sub New(ByVal document As document, ByVal folder As String)
+		Me.storage = UiStorageFactory.GetDocumentStorage(document)
+		Me.document = document
+		Me.folderPath = folder
+	End Sub
+
+	Public Function ToJsonString() As String
+		Dim jsonRoot = New JObject()
+		Dim jsonParams = New JArray()
+		Dim inventorParameters = document.ComponentDefinition.Parameters
+
+		For Each param As Parameter In inventorParameters
+			Dim jsonParam = New JObject()
+			jsonParam.Add("name", param.Name)
+			jsonParam.Add("type", param.ParameterType.ToString())
+			jsonParam.Add("expression", param.Expression)
+
+			If param.ExpressionList IsNot Nothing AndAlso param.ExpressionList.Count > 0 Then
+				Dim jsonExpressions = New JArray()
+
+				For Each expression As String In param.ExpressionList
+					jsonExpressions.Add(expression)
+				Next
+
+				jsonParam.Add("expressions", jsonExpressions)
+			End If
+
+			jsonParams.Add(jsonParam)
+		Next
+
+		jsonRoot.Add("parameters", jsonParams)
+		Dim jsonForms = New JArray()
+		Dim names = storage.FormNames
+
+		For Each name As String In names
+			Dim jsonForm = GetGroupsAndParameters(name)
+			jsonForm.Add("name", name)
+			jsonForms.Add(jsonForm)
+		Next
+
+		jsonRoot.Add("forms", jsonForms)
+		Return jsonRoot.ToString()
+	End Function
+
+	Private Function GetGroupsAndParameters(ByVal formName As String) As JObject
+		Dim formSpec As FormSpecification = storage.LoadFormSpecification(formName)
+		Return GetGroupItems(formSpec, Nothing)
+	End Function
+
+	Private Function GetGroupItems(ByVal container As UiElementContainerSpec, ByVal Optional containerToProcess As UiElementContainerSpec = Nothing) As JObject
+		Dim item As JObject = New JObject()
+		If containerToProcess Is Nothing Then containerToProcess = container
+		Dim subItems = New JArray()
+
+		For Each elementSpec In containerToProcess.Items
+			Dim subItem = GetElement(container, elementSpec)
+			subItems.Add(subItem)
+		Next
+
+		If subItems.Count() > 0 Then
+			item.Add("items", subItems)
+		End If
+
+		Return item
+	End Function
+
+	Private Function GetElement(ByVal container As UiElementContainerSpec, ByVal elementSpec As UiElementSpec) As JObject
+		Dim item As JObject = Nothing
+		Dim pcs = TryCast(elementSpec, ParameterControlSpec)
+
+		If pcs IsNot Nothing Then
+			item = GetParameter(container, pcs)
+		ElseIf TypeOf elementSpec Is PictureControlSpec Then
+			item = GetPicture(container, CType(elementSpec, PictureControlSpec))
+		Else
+			Dim subContainer = TryCast(elementSpec, UiElementContainerSpec)
+
+			If subContainer IsNot Nothing Then
+				Dim Group = TryCast(subContainer, ControlSpecGroupBase)
+
+				If Group IsNot Nothing Then
+					item = GetGroupItems(Group , Nothing)
+				ElseIf TypeOf subContainer Is ControlRowSpec Then
+					item = GetGroupItems(container, subContainer)
+				Else
+					Dim pictureFolderSpec = TryCast(subContainer, PictureFolderSpec)
+
+					If pictureFolderSpec IsNot Nothing Then
+						item = GetPictureFolder(container, pictureFolderSpec)
+					End If
+				End If
+			End If
+		End If
+
+		If item Is Nothing Then
+			item = New JObject()
+		End If
+
+		item.Add("name", elementSpec.Name)
+		item.Add("tooltip", elementSpec.ToolTip)
+		item.Add("displayName", elementSpec.DisplayName)
+		item.Add("type", elementSpec.[GetType]().Name)
+		Return item
+	End Function
+
+	Private Function SaveImage(ByVal image As Image) As String
+		Dim hash As String
+
+		Using stream = New MemoryStream()
+			image.Save(stream, ImageFormat.Png)
+
+			Using md5 As MD5 = MD5.Create()
+				stream.Seek(0, SeekOrigin.Begin)
+				hash = New Guid(md5.ComputeHash(stream)).ToString("N")
+			End Using
+		End Using
+
+		Dim filename = hash & ".png"
+		System.Diagnostics.Debug.WriteLine("Saving '" & filename & "'")
+		Dim fullName = System.IO.Path.Combine(folderPath, filename)
+		image.Save(fullName)
+		Return filename
+	End Function
+
+	Private Function GetPicture(ByVal container As UiElementContainerSpec, ByVal pictureSpec As PictureControlSpec) As JObject
+		Dim item = New JObject()
+		item.Add("pictureParameterName", pictureSpec.PictureParameterName)
+
+		Try
+			System.Diagnostics.Debug.WriteLine("Trying to save '" & pictureSpec.Name)
+			Dim name As String = SaveImage(pictureSpec.Image.Bitmap)
+			item.Add("file", name)
+		Catch e As Exception
+			System.Diagnostics.Debug.WriteLine(e.ToString())
+		End Try
+
+		Return item
+	End Function
+
+	Private Function GetPictureFolder(ByVal container As UiElementContainerSpec, ByVal pictureFolderSpec As PictureFolderSpec) As JObject
+		Dim item = New JObject()
+		Dim subItems = New JArray()
+
+		For Each pic In pictureFolderSpec.Items
+			Dim pictureItem = TryCast(pic, PictureSourceSpec)
+			If pictureItem Is Nothing Then Continue For
+
+			Try
+				System.Diagnostics.Debug.WriteLine("Trying to save '" & pictureItem.Name)
+				Dim name As String = SaveImage(pictureItem.Bitmap.Bitmap)
+				Dim subItem = New JObject()
+				subItem.Add("name", pictureItem.Name)
+				subItem.Add("file", name)
+				subItems.Add(subItem)
+			Catch e As Exception
+				System.Diagnostics.Debug.WriteLine(e.ToString())
+			End Try
+		Next
+
+		item.Add("items", subItems)
+		Return item
+	End Function
+
+	Private Function GetParameter(ByVal container As UiElementContainerSpec, ByVal pcs As ParameterControlSpec) As JObject
+		Dim item = New JObject()
+		item.Add("alwaysReadOnly", pcs.AlwaysReadOnly)
+		item.Add("readOnly", pcs.[ReadOnly])
+		item.Add("enablingParameterName", pcs.EnablingParameterName)
+		item.Add("parameterName", pcs.ParameterName)
+		Dim numeric As NumericParameterControlSpec = TryCast(pcs, NumericParameterControlSpec)
+
+		If numeric IsNot Nothing Then
+
+			If numeric.EditControlType = ControlType.TrackBar Then
+				item.Add("minimumValue", numeric.TrackBarProperties.MinimumValue)
+				item.Add("maximumValue", numeric.TrackBarProperties.MaximumValue)
+			End If
+
+			item.Add("editControlType", numeric.EditControlType.ToString())
+		End If
+
+		Return item
+	End Function
+End Class
+
+Sub Main
+	Logger.Info("Start Form extraction")
+	Dim outputFolderPath As String = "C:\Temp\iLogicForms"
+	Try
+		' When running on the desktop
+		ad = ThisApplication.ActiveDocument
+	Catch
+		' When running on Design Automation
+		outputFolderPath = System.IO.Directory.GetCurrentDirectory() + "\outputFiles"
+	End Try
+
+	Logger.Info(outputFolderPath)
+	Dim reader As New iLogicFormsReader(ThisDoc.Document, outputFolderPath)
+	Dim json As String = reader.ToJsonString()
+	Dim jsonPath As String = System.IO.Path.Combine(outputFolderPath, "result.json")
+	System.IO.File.WriteAllText(jsonPath, json)
+	Logger.Info("Finished Form extraction")
+End Sub
