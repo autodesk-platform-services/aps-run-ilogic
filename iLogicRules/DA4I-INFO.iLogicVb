@@ -1,0 +1,6 @@
+﻿Dim pd As Document = ThisDoc.Document 
+
+Dim count = pd.ComponentDefinition.SurfaceBodies.Count 
+
+Logger.Trace("SurfaceBodies.Count = " + count.ToString())
+
