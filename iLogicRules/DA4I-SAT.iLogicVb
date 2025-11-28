@@ -1,0 +1,54 @@
+﻿Dim outputFolderPath As String
+Try
+	' When running on the desktop
+	ad = ThisApplication.ActiveDocument 
+	outputFolderPath = "C:\Temp"
+Catch
+	' When running on Design Automation
+	outputFolderPath = System.IO.Directory.GetCurrentDirectory() + "\outputFiles"
+End Try
+
+Logger.Trace("Saving SAT to folder " + outputFolderPath)
+
+Dim oDoc As PartDocument
+oDoc = ThisDoc.Document
+
+Dim oCompDef As SheetMetalComponentDefinition
+oCompDef = oDoc.ComponentDefinition
+    
+If oCompDef.HasFlatPattern = False Then
+    oCompDef.Unfold
+End If
+
+Dim oFlatPattern As FlatPattern
+oFlatPattern = oCompDef.FlatPattern
+
+Dim strCLSID As String = "{89162634-02B6-11D5-8E80-0010B541CD80}"
+
+Dim oAddIns As ApplicationAddIns
+oAddIns = ThisServer.ApplicationAddIns 
+Dim oTransAddIn As TranslatorAddIn
+oTransAddIn = oAddIns.ItemById(strCLSID)
+oTransAddIn.Activate
+
+Dim oTransientObjects As TransientObjects
+oTransientObjects = ThisServer.TransientObjects
+Dim oData As DataMedium
+oData = oTransientObjects.CreateDataMedium
+oData.FileName = outputFolderPath + "\output.sat"
+
+Logger.Trace("Saving SAT as " + oData.FileName)
+
+Dim oContext As TranslationContext
+oContext = oTransientObjects.CreateTranslationContext
+oContext.Type = kFileBrowseIOMechanism
+
+Dim oOptions As NameValueMap
+oOptions = oTransientObjects.CreateNameValueMap
+
+If oTransAddIn.HasSaveCopyAsOptions(oDwg, oContext, oOptions) Then
+  'oOptions.Value("IncludeSketches") = True
+  'oOptions.Value("ExportBodyNames") = True
+End If
+
+oTransAddIn.SaveCopyAs(oFlatPattern, oContext, oOptions, oData)
