@@ -1,0 +1,46 @@
+﻿Dim outputFolderPath As String
+Try
+	' When running on the desktop
+	ad = ThisApplication.ActiveDocument 
+	outputFolderPath = "C:\Temp"
+	iniPath = "C:\Users\nagyad\Downloads\sketch-symbol-aps-test\DWG_2_DWG.ini"
+Catch
+	' When running on Design Automation
+	outputFolderPath = System.IO.Directory.GetCurrentDirectory() + "\outputFiles"
+	iniPath = System.IO.Directory.GetCurrentDirectory() + "\inputFiles\DWG_2_DWG.ini"
+End Try
+
+Logger.Trace("Saving DWG to folder " + outputFolderPath)
+
+Dim oDoc As DrawingDocument
+oDoc = ThisDoc.Document
+
+Dim strCLSID As String = "{C24E3AC2-122E-11D5-8E91-0010B541CD80}"
+
+Dim oAddIns As ApplicationAddIns
+oAddIns = ThisServer.ApplicationAddIns 
+Dim oTransAddIn As TranslatorAddIn
+oTransAddIn = oAddIns.ItemById(strCLSID)
+oTransAddIn.Activate
+
+Dim oTransientObjects As TransientObjects
+oTransientObjects = ThisServer.TransientObjects
+Dim oData As DataMedium
+oData = oTransientObjects.CreateDataMedium
+oData.FileName = outputFolderPath + "\output.dwg"
+
+Logger.Trace("Saving DWG as " + oData.FileName)
+
+Dim oContext As TranslationContext
+oContext = oTransientObjects.CreateTranslationContext
+oContext.Type = kFileBrowseIOMechanism
+
+Dim oOptions As NameValueMap
+oOptions = oTransientObjects.CreateNameValueMap
+
+If oTransAddIn.HasSaveCopyAsOptions(oDoc, oContext, oOptions) Then
+	oOptions.Value("Export_INIFiles") = iniPath
+    oOptions.Value("Export_Acad_Version") = "2018" ' Example version
+End If
+
+oTransAddIn.SaveCopyAs(oDoc, oContext, oOptions, oData)
