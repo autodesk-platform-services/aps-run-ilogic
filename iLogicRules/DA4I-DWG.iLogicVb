@@ -39,7 +39,7 @@ Dim oOptions As NameValueMap
 oOptions = oTransientObjects.CreateNameValueMap
 
 If oTransAddIn.HasSaveCopyAsOptions(oDoc, oContext, oOptions) Then
-	oOptions.Value("Export_INIFiles") = iniPath
+	oOptions.Value("Export_Acad_IniFile") = iniPath
     oOptions.Value("Export_Acad_Version") = "2018" ' Example version
 End If
 
