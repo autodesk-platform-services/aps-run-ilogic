@@ -1,0 +1,54 @@
+﻿Dim outputFolderPath As String
+Try
+	' When running on the desktop
+	ad = ThisApplication.ActiveDocument 
+	outputFolderPath = "C:\Temp"
+Catch
+	' When running on Design Automation
+	outputFolderPath = System.IO.Directory.GetCurrentDirectory() + "\outputFiles"
+End Try
+
+Logger.Trace("Saving STEP to folder " + outputFolderPath)
+
+Dim oDoc As Document
+oDoc = ThisDoc.Document
+
+Dim strCLSID As String = "{90AF7F40-0C01-11D5-8E83-0010B541CD80}"
+
+Dim oAddIns As ApplicationAddIns
+oAddIns = ThisServer.ApplicationAddIns 
+Dim oTransAddIn As TranslatorAddIn
+oTransAddIn = oAddIns.ItemById(strCLSID)
+oTransAddIn.Activate
+
+Dim oTransientObjects As TransientObjects
+oTransientObjects = ThisServer.TransientObjects
+Dim oData As DataMedium
+oData = oTransientObjects.CreateDataMedium
+oData.FileName = outputFolderPath + "\output.step"
+
+Logger.Trace("Saving STEP as " + oData.FileName)
+
+Dim oContext As TranslationContext
+oContext = oTransientObjects.CreateTranslationContext
+oContext.Type = kFileBrowseIOMechanism
+
+Dim oOptions As NameValueMap
+oOptions = oTransientObjects.CreateNameValueMap
+
+If oTransAddIn.HasSaveCopyAsOptions(oDwg, oContext, oOptions) Then
+	' Set application protocol.
+    ' 2 = AP 203 - Configuration Controlled Design
+    ' 3 = AP 214 - Automotive Design
+    'oOptions.Value("ApplicationProtocolType") = 3
+
+    ' Other options...
+    'oOptions.Value("Author") = ""
+    'oOptions.Value("Authorization") = ""
+    'oOptions.Value("Description") = ""
+    'oOptions.Value("Organization") = ""
+
+    'oContext.Type = kFileBrowseIOMechanism
+End If
+
+oTransAddIn.SaveCopyAs(oDoc, oContext, oOptions, oData)
